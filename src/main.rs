@@ -248,6 +248,7 @@ fn get_file_as_byte_vec(filename: &String) -> Vec<u8> {
     buffer
 }
 fn main() {
+    // based of https://github.com/ArmDeveloperEcosystem/microphone-library-for-pico
     let mut filter = PDMFilter::new();
     filter.init();
     let filename = String::from("test_audio.raw");
@@ -277,7 +278,7 @@ fn main() {
             );
         }
     }
-    // other rust conversion code
+    // other rust conversion code https://github.com/mcbridejc/acoustic-array-tools
     // let mut out: [f32; 80000] = [0f32; 80000];
     // let mut pdm_processor = PdmFilters::new();
     // pdm_processor.process_pdm(&buffer[..], 1, &mut out[..]);
