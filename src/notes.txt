@@ -1,0 +1,78 @@
+first filter
+at each possible byte value of c 0->256
+push a weight
+
+
+           self.lut.push(
+                        (c >> 7) * coef[offset + d * 8]
+                            + ((c >> 6) & 0x01) * coef[offset + d * 8 + 1]
+                            + ((c >> 5) & 0x01) * coef[offset + d * 8 + 2]
+                            + ((c >> 4) & 0x01) * coef[offset + d * 8 + 3]
+                            + ((c >> 3) & 0x01) * coef[offset + d * 8 + 4]
+                            + ((c >> 2) & 0x01) * coef[offset + d * 8 + 5]
+                            + ((c >> 1) & 0x01) * coef[offset + d * 8 + 6]
+                            + ((c) & 0x01) * coef[offset + d * 8 + 7],
+                    );
+
+
+
+window length is 8
+for each window length
+z0 = first filter
+z1 = second
+z2 = third
+
+
+decimated =  coef[1] + third
+this is effectivately
+1st filter from 2 cycles + previous 2nd filter + current 3td filter
+
+coef[0] = previous first
+coef[1] = previous first + current second
+
+coef[1] = coef[0] + second filter
+
+old_out  = high pass(decimated)
+old_in = z0
+oldz = low pass * hp
+decimated = oldz * volume
+save decimated
+
+
+
+2/4 + 4/8
+2 + 0.5 = 2.5
+b/2 / b 2/4 = 0.5
+
+
+2 + 1.5 / 3
+3.5 /3
+1
+
+
+a/b  + 1/2
+
+2 / 3
+
+
+
+
+ a / b
+
+b/2 /  b / 1
+
+ (a + b/2)/b
+
+a = 2
+b = 4
+(a + 2)  / 4
+4 /4 = 1
+
+
+x = (a+b/2) /b
+xb = a+b /2
+2xb = 2a + b
+
+
+a /b = 2/4 = 0.5
+
