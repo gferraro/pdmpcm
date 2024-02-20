@@ -253,38 +253,30 @@ fn main() {
     let filename = String::from("test_audio.raw");
     let buffer = get_file_as_byte_vec(&filename);
 
-    // for val in &buffer[0..200] {
-    //     print!("Val is {}", val);
-    // }
-    // println!("Have {}", buffer.len());
-    // let filtered = filter.filter(&buffer[0..], 64);
-    // println!("Filtered data {}", filtered.len());
-    // for val in &filtered[..10] {
-    //     println!("PCM Val is {}", val);
-    // }
-    // let slice_u8: &[u8] = unsafe {
-    //     slice::from_raw_parts(
-    //         filtered.as_ptr() as *const u8,
-    //         filtered.len() * mem::size_of::<u16>(),
-    //     )
-    // };
-    // println!("Filtered u8 data {}", slice_u8.len());
+    let filtered = filter.filter(&buffer[..], 10);
 
-    // match fs::write("test_audio.pcm", &slice_u8) {
-    //     Ok(()) => {
-    //         println!(
-    //             "Saved Audio file {} bytes are {}",
-    //             "test_audio.pcm",
-    //             slice_u8.len()
-    //         );
-    //     }
-    //     Err(e) => {
-    //         println!(
-    //             "Failed writing Audio file to storage at {}, reason: {}",
-    //             "test_audio.cpm", e
-    //         );
-    //     }
-    // }
+    let slice_u8: &[u8] = unsafe {
+        slice::from_raw_parts(
+            filtered.as_ptr() as *const u8,
+            filtered.len() * mem::size_of::<u16>(),
+        )
+    };
+
+    match fs::write("test_audio.pcm", &slice_u8) {
+        Ok(()) => {
+            println!(
+                "Saved Audio file {} bytes are {}",
+                "test_audio.pcm",
+                slice_u8.len()
+            );
+        }
+        Err(e) => {
+            println!(
+                "Failed writing Audio file to storage at {}, reason: {}",
+                "test_audio.cpm", e
+            );
+        }
+    }
 
     let mut out: [f32; 80000] = [0f32; 80000];
     let mut pdm_processor = PdmFilters::new();
