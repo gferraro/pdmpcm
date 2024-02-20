@@ -277,26 +277,26 @@ fn main() {
             );
         }
     }
-
-    let mut out: [f32; 80000] = [0f32; 80000];
-    let mut pdm_processor = PdmFilters::new();
-    pdm_processor.process_pdm(&buffer[..], 1, &mut out[..]);
-    let slice_u8: &[u8] = unsafe {
-        slice::from_raw_parts(out.as_ptr() as *const u8, out.len() * mem::size_of::<f32>())
-    };
-    match fs::write("test_audio.pcm", &slice_u8) {
-        Ok(()) => {
-            println!(
-                "Saved Audio file {} bytes are {}",
-                "test_audio.pcm",
-                slice_u8.len()
-            );
-        }
-        Err(e) => {
-            println!(
-                "Failed writing Audio file to storage at {}, reason: {}",
-                "test_audio.cpm", e
-            );
-        }
-    }
+    // other rust conversion code
+    // let mut out: [f32; 80000] = [0f32; 80000];
+    // let mut pdm_processor = PdmFilters::new();
+    // pdm_processor.process_pdm(&buffer[..], 1, &mut out[..]);
+    // let slice_u8: &[u8] = unsafe {
+    //     slice::from_raw_parts(out.as_ptr() as *const u8, out.len() * mem::size_of::<f32>())
+    // };
+    // match fs::write("test_audio.pcm", &slice_u8) {
+    //     Ok(()) => {
+    //         println!(
+    //             "Saved Audio file {} bytes are {}",
+    //             "test_audio.pcm",
+    //             slice_u8.len()
+    //         );
+    //     }
+    //     Err(e) => {
+    //         println!(
+    //             "Failed writing Audio file to storage at {}, reason: {}",
+    //             "test_audio.cpm", e
+    //         );
+    //     }
+    // }
 }
