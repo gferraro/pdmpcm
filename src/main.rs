@@ -176,15 +176,24 @@ fn satural_lh(n: i64, l: i64, h: i64) -> i64 {
     }
     return n;
 }
+// lut is all 0s
+// all c0 -> c08
 
+// all 1s
+// all 2s
 // apply weights on each bit of input data
 fn filter_table_mono_64(lut: &Vec<u32>, data: &[u32], s: u8) -> u32 {
     // let val = lut[(s * PDM_DECIMATION + data[0] * PDM_DECIMATION / 8) as usize];
-    // println!(
-    //     "Getting data at {} index {}",
-    //     data[0],
-    //     (data[0] as usize * PDM_DECIMATION as usize / 8)
-    // );
+    let s_offset = (s as usize * 256 * 8);
+
+    println!(
+        "Getting data at {} is {} index {} s offset {} is {}",
+        data[0],
+        data[0] >> 24,
+        (data[0] as usize * PDM_DECIMATION as usize / 8),
+        s,
+        s_offset
+    );
     // println!(
     //     "Getting data at {} index {}",
     //     data[1],
@@ -200,14 +209,20 @@ fn filter_table_mono_64(lut: &Vec<u32>, data: &[u32], s: u8) -> u32 {
     //     data[3],
     //     (data[3] as usize * PDM_DECIMATION as usize / 8 + 3)
     // );
-    return lut[((data[0] >> 24) as usize * PDM_DECIMATION as usize / 8) as usize]
-        + lut[((data[0] & 0x00ff0000 >> 16) as usize * PDM_DECIMATION as usize / 8 + 1) as usize]
-        + lut[((data[0] & 0x0000ff00 >> 8) as usize * PDM_DECIMATION as usize / 8 + 2) as usize]
-        + lut[((data[0] & 0x000000ff >> 0) as usize * PDM_DECIMATION as usize / 8 + 3) as usize]
-        + lut[((data[1] >> 24) as usize * PDM_DECIMATION as usize / 8 + 4) as usize]
-        + lut[((data[1] & 0x00ff0000 >> 16) as usize * PDM_DECIMATION as usize / 8 + 5) as usize]
-        + lut[((data[1] & 0x0000ff00 >> 8) as usize * PDM_DECIMATION as usize / 8 + 6) as usize]
-        + lut[((data[1] & 0x000000ff >> 0) as usize * PDM_DECIMATION as usize / 8 + 7) as usize];
+    return lut[s_offset + ((data[0] >> 24) as usize * PDM_DECIMATION as usize / 8) as usize]
+        + lut[s_offset
+            + ((data[0] & 0x00ff0000 >> 16) as usize * PDM_DECIMATION as usize / 8 + 1) as usize]
+        + lut[s_offset
+            + ((data[0] & 0x0000ff00 >> 8) as usize * PDM_DECIMATION as usize / 8 + 2) as usize]
+        + lut[s_offset
+            + ((data[0] & 0x000000ff >> 0) as usize * PDM_DECIMATION as usize / 8 + 3) as usize]
+        + lut[s_offset + ((data[1] >> 24) as usize * PDM_DECIMATION as usize / 8 + 4) as usize]
+        + lut[s_offset
+            + ((data[1] & 0x00ff0000 >> 16) as usize * PDM_DECIMATION as usize / 8 + 5) as usize]
+        + lut[s_offset
+            + ((data[1] & 0x0000ff00 >> 8) as usize * PDM_DECIMATION as usize / 8 + 6) as usize]
+        + lut[s_offset
+            + ((data[1] & 0x000000ff >> 0) as usize * PDM_DECIMATION as usize / 8 + 7) as usize];
 }
 fn convolve(signal: &Vec<u16>, kernel: &Vec<u16>) -> Vec<u16> {
     let outlen = signal.len() + kernel.len() - 1;
