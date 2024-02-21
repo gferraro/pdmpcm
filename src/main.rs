@@ -3,7 +3,7 @@ const PDM_DECIMATION: u8 = 64;
 const SAMPLE_RATE: u32 = 32000 * 64;
 const PI: f32 = 3.14159;
 const SINCN: u8 = 3;
-const FILTER_GAIN: u8 = 16;
+const FILTER_GAIN: u8 = 32;
 const MAX_VOLUME: u8 = 64;
 mod pdm;
 use pdm::PdmFilters;
@@ -116,7 +116,7 @@ impl PDMFilter {
         println!("lut is {}", self.lut.len());
     }
 
-    fn filter(&mut self, data: &[u8], volume: u32) -> Vec<u16> {
+    fn filter(&mut self, data: &[u32], volume: u32) -> Vec<u16> {
         let mut dataout: Vec<u16> = Vec::with_capacity(data.len());
 
         let mut old_out: i64 = self.old_out;
@@ -124,14 +124,14 @@ impl PDMFilter {
         let mut oldz: i64 = self.oldz;
         println!("Filtering {}", data.len());
         // skip PDM_DECIMATION bits, so change to bytes to match data u8 type
-        for i in (0..data.len() - 8).step_by(PDM_DECIMATION as usize >> 3) {
-            // println!("Starting {} stopping at {}", i, data.len() - 8);
+        for i in (0..data.len() - 1).step_by(2) {
+            // println!("Starting {} stopping at {}", i, data.len() - 1);
             let index = i as usize;
 
             // 3 stages?
-            let z0 = filter_table_mono_64(&self.lut, &data[index..index + 8], 0);
-            let z1 = filter_table_mono_64(&self.lut, &data[index..index + 8], 1);
-            let z2 = filter_table_mono_64(&self.lut, &data[index..index + 8], 2);
+            let z0 = filter_table_mono_64(&self.lut, &data[index..index + 2], 0);
+            let z1 = filter_table_mono_64(&self.lut, &data[index..index + 2], 1);
+            let z2 = filter_table_mono_64(&self.lut, &data[index..index + 2], 2);
             // println!("z0 {} z1 {} z2 {}", z0, z1, z2);
 
             let mut z: i64 = self.coef[1] as i64 + z2 as i64 - self.sub_const as i64;
@@ -178,7 +178,7 @@ fn satural_lh(n: i64, l: i64, h: i64) -> i64 {
 }
 
 // apply weights on each bit of input data
-fn filter_table_mono_64(lut: &Vec<u32>, data: &[u8], s: u8) -> u32 {
+fn filter_table_mono_64(lut: &Vec<u32>, data: &[u32], s: u8) -> u32 {
     // let val = lut[(s * PDM_DECIMATION + data[0] * PDM_DECIMATION / 8) as usize];
     // println!(
     //     "Getting data at {} index {}",
@@ -200,14 +200,14 @@ fn filter_table_mono_64(lut: &Vec<u32>, data: &[u8], s: u8) -> u32 {
     //     data[3],
     //     (data[3] as usize * PDM_DECIMATION as usize / 8 + 3)
     // );
-    return lut[(data[0] as usize * PDM_DECIMATION as usize / 8) as usize]
-        + lut[(data[1] as usize * PDM_DECIMATION as usize / 8 + 1) as usize]
-        + lut[(data[2] as usize * PDM_DECIMATION as usize / 8 + 2) as usize]
-        + lut[(data[3] as usize * PDM_DECIMATION as usize / 8 + 3) as usize]
-        + lut[(data[4] as usize * PDM_DECIMATION as usize / 8 + 4) as usize]
-        + lut[(data[5] as usize * PDM_DECIMATION as usize / 8 + 5) as usize]
-        + lut[(data[6] as usize * PDM_DECIMATION as usize / 8 + 6) as usize]
-        + lut[(data[7] as usize * PDM_DECIMATION as usize / 8 + 7) as usize];
+    return lut[((data[0] >> 24) as usize * PDM_DECIMATION as usize / 8) as usize]
+        + lut[((data[0] & 0x00ff0000 >> 16) as usize * PDM_DECIMATION as usize / 8 + 1) as usize]
+        + lut[((data[0] & 0x0000ff00 >> 8) as usize * PDM_DECIMATION as usize / 8 + 2) as usize]
+        + lut[((data[0] & 0x000000ff >> 0) as usize * PDM_DECIMATION as usize / 8 + 3) as usize]
+        + lut[((data[1] >> 24) as usize * PDM_DECIMATION as usize / 8 + 4) as usize]
+        + lut[((data[1] & 0x00ff0000 >> 16) as usize * PDM_DECIMATION as usize / 8 + 5) as usize]
+        + lut[((data[1] & 0x0000ff00 >> 8) as usize * PDM_DECIMATION as usize / 8 + 6) as usize]
+        + lut[((data[1] & 0x000000ff >> 0) as usize * PDM_DECIMATION as usize / 8 + 7) as usize];
 }
 fn convolve(signal: &Vec<u16>, kernel: &Vec<u16>) -> Vec<u16> {
     let outlen = signal.len() + kernel.len() - 1;
@@ -247,15 +247,105 @@ fn get_file_as_byte_vec(filename: &String) -> Vec<u8> {
 
     buffer
 }
+
+fn get_bit_at(input: u32, n: u8) -> Result<bool, ()> {
+    if n < 32 {
+        Ok(input & (1 << n) != 0)
+    } else {
+        Err(())
+    }
+}
+
+fn get_bit_at_u8(input: u8, n: u8) -> Result<bool, ()> {
+    if n < 32 {
+        Ok(input & (1 << n) != 0)
+    } else {
+        Err(())
+    }
+}
+
 fn main() {
+    let test: [u32; 2] = [2147483647, 1073741823];
+    let slice_u8: &[u8] = unsafe {
+        slice::from_raw_parts(
+            test.as_ptr() as *const u8,
+            test.len() * mem::size_of::<u32>(),
+        )
+    };
+    // count = 0
+    for val in test {
+        for n in 0..32 {
+            let bit = get_bit_at(val, 31 - n);
+            println!("Bit value {} is {:?}", 31 - n, bit);
+        }
+    }
+    println!("U8 arr");
+    for val in slice_u8 {
+        println!("FIRST");
+        for n in 0..8 {
+            let bit = get_bit_at_u8(*val, 7 - n);
+            println!("Bit value {} is {:?}", 7 - n, bit);
+        }
+    }
+
+    let slice_u832: &[u32] = unsafe {
+        slice::from_raw_parts(
+            (slice_u8 as *const [u8]) as *const u32,
+            slice_u8.len() / mem::size_of::<u32>(),
+        )
+    };
+
+    println!(
+        "first 8 {} then {} then {} then {}",
+        test[0] >> 24,
+        test[0] & 0x00ff0000 >> 16,
+        test[0] & 0x0000ff00 >> 8,
+        test[0] & 0x000000ff >> 0
+    );
+    println!(
+        "first 8 {} then {} then {} then {}",
+        test[1] >> 24,
+        test[1] & 0x00ff0000 >> 16,
+        test[1] & 0x0000ff00 >> 8,
+        test[1] & 0x000000ff >> 0
+    );
+    match fs::write("test_audio.pcm", &slice_u8) {
+        Ok(()) => {
+            println!(
+                "Saved Audio file {} bytes are {}",
+                "test_audio.pcm",
+                slice_u8.len()
+            );
+        }
+        Err(e) => {
+            println!(
+                "Failed writing Audio file to storage at {}, reason: {}",
+                "test_audio.cpm", e
+            );
+        }
+    }
+    println!("Brining back {:?}", slice_u832);
+    // return;
+    // println!("Test is {:?} and raw {:?}", test, slice_u8);
     // based of https://github.com/ArmDeveloperEcosystem/microphone-library-for-pico
     let mut filter = PDMFilter::new();
     filter.init();
     let filename = String::from("test_audio.raw");
     let buffer = get_file_as_byte_vec(&filename);
 
-    let filtered = filter.filter(&buffer[..], 10);
-
+    let buffer_u32: &[u32] = unsafe {
+        slice::from_raw_parts(
+            (buffer[..].as_ptr() as *const u8) as *const u32,
+            buffer.len() / mem::size_of::<u32>(),
+        )
+    };
+    for i in 0..10 {
+        println!("First 10 {:?}", buffer_u32[i]);
+    }
+    let filtered = filter.filter(&buffer_u32, 10);
+    for i in 0..10 {
+        println!("First 10 Filtered {:?}", filtered[i]);
+    }
     let slice_u8: &[u8] = unsafe {
         slice::from_raw_parts(
             filtered.as_ptr() as *const u8,
